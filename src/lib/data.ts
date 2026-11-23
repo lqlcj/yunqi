@@ -105,7 +105,7 @@ export async function initialize(){
     update({authorized,lastSync:await getMeta('lastSync')??null,loaded:true});
     try{
       const session=await api<{authenticated:boolean}>('/api/session');
-      if(session.authenticated){await setMeta('authorized',true);update({authorized:true,session:'connected'});await sync();}
+      if(session.authenticated){await setMeta('authorized',true);update({authorized:true,session:'checking'});await sync();}
       else update({session:'expired'});
     }catch{update({session:'offline'});}
     update({storagePersistent:await navigator.storage?.persisted?.()??false});
@@ -116,7 +116,9 @@ export async function initialize(){
   setInterval(()=>{if(!document.hidden && state.authorized)void sync();},60000);
 }
 export async function login(password:string){
-  await api('/api/login',{password});await setMeta('authorized',true);update({authorized:true,session:'connected',error:''});
+  // Authentication can finish before storage permission and the first data download.
+  // Only performSync may mark the journal connected after records have been applied.
+  await api('/api/login',{password});await setMeta('authorized',true);update({authorized:true,session:'checking',error:''});
   try{update({storagePersistent:await navigator.storage?.persist?.()??false});}catch{}
   await sync();
 }

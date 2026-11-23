@@ -21,7 +21,15 @@ const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors
 try{
   // A fixed Shanghai 00:30 tests the same recent-hour window across midnight on both screens.
   await page.clock.setFixedTime(new Date(fromShanghai(`${fixture.next}T00:30:00`)));
-  await page.goto(origin);await page.getByLabel('访问密码').fill(password);await page.getByRole('button',{name:'打开记录本'}).click();
+  await page.goto(origin);
+  // Hold the storage permission request so first-login synchronization cannot race the assertions.
+  await page.evaluate(()=>{
+    navigator.storage.persist=()=>new Promise(resolve=>{window.finishStorageRequest=()=>resolve(false);});
+  });
+  await page.getByLabel('访问密码').fill(password);await page.getByRole('button',{name:'打开记录本'}).click();
+  await page.waitForFunction(()=>typeof window.finishStorageRequest==='function');
+  assert.equal(await page.locator('.sync-status').textContent(),'正在同步','first login must not report success before downloading records');
+  await page.evaluate(()=>window.finishStorageRequest());
   await page.waitForFunction(()=>document.querySelector('.sync-status')?.textContent==='已同步');
   assert.equal((await page.locator('.contraction-reading').textContent()).replace(/\s/g,''),'2次');
   await page.locator('.bottom-nav').getByRole('button',{name:'宫缩',exact:true}).click();
