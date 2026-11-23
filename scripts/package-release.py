@@ -8,9 +8,9 @@ out = root / 'release'
 out.mkdir(exist_ok=True)
 version = json.loads((root / 'package.json').read_text(encoding='utf-8'))['version']
 target = out / f'qing-pregnancy-v{version}.zip'
-directories = ('dist', 'src', 'server', 'shared', 'public', 'scripts', 'tests', 'docs', '.github')
+directories = ('dist', 'src', 'server', 'shared', 'public', 'scripts', 'docs', '.github')
 files = ('package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts',
-         'index.html', 'README.md', 'VERIFICATION.md', 'CHANGELOG.md', '.env.example', '.gitignore', '.gitattributes', '.dockerignore',
+         'index.html', 'README.md', 'CHANGELOG.md', '.env.example', '.gitignore', '.gitattributes', '.dockerignore',
          'Dockerfile', 'Dockerfile.prebuilt', 'Dockerfile.prebuilt.dockerignore',
          'compose.yaml', 'compose.prebuilt.yaml', 'Caddyfile')
 if not (root / 'dist' / 'sw.js').is_file():
@@ -25,7 +25,7 @@ with ZipFile(target, 'w', ZIP_DEFLATED, compresslevel=9) as archive:
 with ZipFile(target) as archive:
     names = archive.namelist()
     assert 'qing-pregnancy/.env' not in names
-    assert not any('/data/' in p or '/node_modules/' in p or '/test-results/' in p for p in names)
+    assert not any('/data/' in p or '/node_modules/' in p or '/tests/' in p or '/test-results/' in p for p in names)
     assert 'qing-pregnancy/dist/sw.js' in names
     assert archive.testzip() is None
 print(f'Created {target} ({target.stat().st_size:,} bytes, {len(names)} files)')

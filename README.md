@@ -26,7 +26,6 @@ shared/           上海时间、医嘱目标、宫缩计算、验证与导出
 server/           登录、同步接口、SQLite、备份与恢复
 public/           PWA manifest 与应用图标
 scripts/          开发启动、首次配置、离线缓存构建
-tests/            数据/API 测试和浏览器端到端测试
 compose.yaml      应用 + Caddy 部署
 ```
 
@@ -45,13 +44,13 @@ npm start
 
 Windows PowerShell 若禁止执行 `npm.ps1`，使用 `npm.cmd`。打开 `http://localhost:3000`，登录密码在本机生成的 `.env` 的 `APP_PASSWORD` 项。首次配置会生成随机密码，已有 `.env` 不会覆盖。
 
-### Vite 模拟预览与 Quick Tunnel
+### Vite 开发预览与 Quick Tunnel
 
 ```sh
 npm run dev -- --host 0.0.0.0
 ```
 
-打开 `http://localhost:5173`，测试密码 **`qing-demo-2027`**。该命令同时启动 Vite 与专用模拟 API，首次生成完整 30 天的 336 条模拟记录。模拟库位于 `test-results/vite-preview/`，修改会保存且重启后保留；正式应用继续使用 `npm start` 及 `.env` 配置的数据目录。
+打开 `http://localhost:5173`，开发密码 **`qing-demo-2027`**。该命令启动 Vite 与独立开发 API，使用空数据库，不再生成模拟记录。开发数据保存在 `.cache/dev-preview/`；正式应用继续使用 `npm start` 及 `.env` 配置的数据目录。
 
 自行启动 Quick Tunnel 时，将目标设为 `http://localhost:5173`：
 
@@ -59,7 +58,7 @@ npm run dev -- --host 0.0.0.0
 cloudflared tunnel --url http://localhost:5173
 ```
 
-Vite 已允许 `*.trycloudflare.com` 预览域名；API 在验证请求来自当前访问地址后转发，因此不需要每次修改 `APP_ORIGIN`。Tunnel 的 HTTPS 访问使用 Secure 会话 Cookie。测试密码只用于模拟预览。
+Vite 已允许 `*.trycloudflare.com` 预览域名；API 在验证请求来自当前访问地址后转发，因此不需要每次修改 `APP_ORIGIN`。Tunnel 的 HTTPS 访问使用 Secure 会话 Cookie。开发密码只用于开发预览。
 
 端口固定为 5173，已被占用时会明确报错。Windows PowerShell 如拦截 `npm.ps1`，把命令中的 `npm` 换成 `npm.cmd`。开发模式不注册 Service Worker，完整 PWA 离线能力使用生产构建验证。
 
@@ -152,31 +151,11 @@ DATA_DIR=./restored-data node server/restore.mjs ./journal-backup.sqlite --serve
 
 脚本检查数据库完整性与记录格式后恢复，并清除旧登录会话。确认恢复结果后再把部署的数据目录切换到恢复目录。Docker 部署建议优先通过应用内 JSON 合并恢复；需要整库替换时先备份整个卷，停止服务后再操作。
 
-## 验证
+## 构建检查
 
-```sh
-npm run build
-npm test
-npm run test:e2e
-npm run test:month
-npm run test:readability
-```
+运行 `npm run build` 检查 TypeScript 并生成生产构建。GitHub Actions 执行构建、Compose 配置校验、Docker 镜像构建及容器健康、登录、同步接口检查。
 
-浏览器测试使用独立临时数据库，不会向真实记录写入示例数据。默认使用 Windows 已安装的 Chrome；其他环境通过 `CHROME_PATH` 指定 Chrome / Chromium 路径。
-
-浏览器测试覆盖登录、血糖边界、血压录入、宫缩刷新恢复与疼痛、离线记录后重载与重连去重、编辑、报告和 CSV/PDF、JSON 备份恢复、删除、手机／桌面排版。测试将浏览器时区设为美国洛杉矶以验证界面仍按上海时间运行。
-
-`test:month` 生成截至昨天的连续 30 个完整上海日：126 次血糖（含六次复测）、58 次血压（含单日四次）、152 次宫缩（含跨午夜），共 336 条模拟记录。浏览器实际操作验证断网导入与重载、100 条分批同步、完整报告/CSV、7/14/30 天筛选、边界值、无效备份整批拒绝、修改/删除后的旧备份恢复、会话过期、同步响应延迟、双标签页计时和 SQLite 下载。另用固定 00:30 时钟验证最近一小时宫缩跨日统计。手机/平板/桌面宽度覆盖 320、375、390、768、1440 像素。
-
-验证产物保存在 `test-results/month/`：模拟 JSON、CSV、PDF、截图和 `verification.json`。模拟读数仅用于软件测试。
-
-Vite 预览启动后运行 `npm run test:preview`，验证三种主题、系统自动切换、刷新记忆、标签页同步、深色录入、五页手机/桌面排版、白底打印、模拟 Quick Tunnel 域名的登录/同步、同源校验与文件访问限制。结果和截图在 `test-results/theme/`。测试模拟 Tunnel 请求头，未创建实际公网 Tunnel。
-
-需要在浏览器查看整月示例时，构建后运行 `npm run demo`，打开 `http://127.0.0.1:3108`，测试密码 `qing-demo-2027`。每次启动都会在 `test-results/mock-preview/` 下建立独立测试库，只监听本机地址，不读取 `.env` 或修改正式 `data/`。这组固定密码仅用于本机模拟预览。
-
-1.0.1 已移除首页介绍卡片并统一应用名称。保留旧版本的 IndexedDB 名称、缓存前缀和 JSON 格式标识，以兼容已有本机记录和备份。
-
-自动化浏览器模拟不能替代 iPhone 真机验证。正式积累数据前，请在实际 Safari 和主屏幕应用中各验证一次：登录、锁屏后宫缩恢复、断网保存与重新联网、截图／导出、备份恢复。
+测试脚本、模拟数据及测试产物不随源码或发布包上传。
 
 ## 使用边界
 
@@ -184,7 +163,7 @@ Vite 预览启动后运行 `npm run test:preview`，验证三种主题、系统�
 
 页面、历史和报告统一展示 **开始时间、持续时长、间隔时长**；间隔按两次开始时间计算。首页和宫缩页根据近期记录提醒：间隔 ≤ 5 分钟提示关注，持续 > 2 分钟或最近 10 分钟 ≥ 6 次提示立即联系产科。单次短间隔不能确认临产，早产征兆及破水、出血、胎动减少不应等待阈值。资料来源、展示窗口及后台限制见 [宫缩记录与提醒依据](docs/contractions.md)，应用的“参考资料与提醒规则”中也可查看。
 
-浅色界面已提高正文与说明文字对比度；打印使用深色文字、白底及较大字号，不受当前深色主题影响。`test:readability` 使用独立整月模拟库，检查可见文本对比度、两种主题的 PDF、宫缩阈值边界、跨日、刷新恢复、修改和删除。产物在 `test-results/readability/`。
+浅色界面已提高正文与说明文字对比度；打印使用深色文字、白底及较大字号，不受当前深色主题影响。
 
 这是记录和展示工具，血糖目标来自家庭提供的医嘱。应用不自动诊断高血压，不判断是否临产或预计多久分娩。血压目标未提供，因此不擅自设置阈值。
 

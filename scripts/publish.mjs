@@ -12,8 +12,8 @@ const repository='https://github.com/lqlcj/yunqi.git';
 const sourcePaths=[
   '.dockerignore','.env.example','.gitattributes','.github','.gitignore',
   'Caddyfile','CHANGELOG.md','Dockerfile','Dockerfile.prebuilt','Dockerfile.prebuilt.dockerignore',
-  'README.md','VERIFICATION.md','compose.yaml','compose.prebuilt.yaml','docs','index.html',
-  'package.json','package-lock.json','public','scripts','server','shared','src','tests','tsconfig.json','vite.config.ts',
+  'README.md','compose.yaml','compose.prebuilt.yaml','docs','index.html',
+  'package.json','package-lock.json','public','scripts','server','shared','src','tsconfig.json','vite.config.ts',
 ];
 function git(args,{capture=false,allowFailure=false}={}){
   const result=spawnSync('git',[...gitOptions,...args],{cwd:root,encoding:'utf8',stdio:capture?['inherit','pipe','pipe']:'inherit'});
@@ -39,7 +39,7 @@ try{
   git(['diff','--cached','--check']);
 
   const files=git(['diff','--cached','--name-only','--diff-filter=ACMR','-z'],{capture:true}).text.split('\0').filter(Boolean);
-  const blocked=files.filter(p=>/(^|\/)(?:data|backups|test-results|node_modules|dist|release|\.cache|\.aws|\.codex|\.agents)(\/|$)/.test(p)||/(^|\/)\.env(?:$|\.(?!example$))/.test(p)||/\.(?:sqlite(?:3)?(?:-(?:wal|shm))?|db(?:-(?:wal|shm))?|pem|key|p12|pfx)$/i.test(p));
+  const blocked=files.filter(p=>/(^|\/)(?:data|backups|tests?|test-results|node_modules|dist|release|\.cache|\.aws|\.codex|\.agents)(\/|$)/.test(p)||p==='VERIFICATION.md'||/(^|\/)\.env(?:$|\.(?!example$))/.test(p)||/\.(?:sqlite(?:3)?(?:-(?:wal|shm))?|db(?:-(?:wal|shm))?|pem|key|p12|pfx)$/i.test(p));
   if(blocked.length)throw new Error('待提交列表包含本机数据或凭据文件：'+blocked.join(', '));
   const envPath=resolve(root,'.env');
   const secrets=existsSync(envPath)?readFileSync(envPath,'utf8').split(/\r?\n/).flatMap(line=>{

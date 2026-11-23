@@ -7,6 +7,9 @@ data/
 backups/
 .cache/
 test-results/
+tests/
+test/
+VERIFICATION.md
 release/
 *.log
 *.sqlite

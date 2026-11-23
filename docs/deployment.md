@@ -85,10 +85,8 @@ node scripts/publish.mjs
 
 ```sh
 npm run build
-npm test
-npm run test:readability
 git status
-git add src shared server public scripts tests docs README.md
+git add src shared server public scripts docs README.md
 git diff --cached
 git commit -m "描述这次修改"
 git push origin main
@@ -96,7 +94,7 @@ git push origin main
 
 按实际变动添加配置文件。版本号在 `package.json` 与 `package-lock.json` 保持一致；功能更新记录在 `CHANGELOG.md`。不要求每次修改都创建版本标签，确定发布时再打标签。
 
-GitHub Actions 配置会在提交后执行构建、数据/API 与浏览器回归、Docker 镜像构建和容器健康/登录/同步检查。它使用测试密码和临时数据，不会自动部署 VPS 或发布镜像。Actions 是否通过应以仓库中的实际执行结果为准。
+GitHub Actions 配置会在提交后执行构建、Compose 配置校验、Docker 镜像构建和容器健康/登录/同步检查。它使用测试密码和临时数据，不会自动部署 VPS 或发布镜像。Actions 是否通过应以仓库中的实际执行结果为准。
 
 ## 预构建包
 

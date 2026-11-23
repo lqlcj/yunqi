@@ -1,4 +1,4 @@
-// Only used by Vite's synthetic preview. Production keeps its fixed APP_ORIGIN.
+// Only used by Vite's development preview. Production keeps its fixed APP_ORIGIN.
 export const DEV_API_ORIGIN = 'http://localhost:5173';
 export function isQuickTunnel(host) {
   try { return new URL(`http://${host}`).hostname.endsWith('.trycloudflare.com'); } catch { return false; }

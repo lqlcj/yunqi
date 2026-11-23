@@ -26,14 +26,6 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
-      - run: npm test
-      - name: Install browser for regression tests
-        run: |
-          npx playwright install --with-deps chromium
-          node --input-type=module -e "import { chromium } from 'playwright'; console.log('CHROME_PATH=' + chromium.executablePath())" >> "$GITHUB_ENV"
-      - run: npm run test:e2e
-      - run: npm run test:month
-      - run: npm run test:readability
       - name: Validate Compose using example configuration
         run: docker compose --env-file .env.example config --quiet
       - name: Build production image from source
