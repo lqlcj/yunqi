@@ -1,0 +1,29 @@
+{
+  "name": "maternity-journal",
+  "version": "1.0.3",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.15.0" },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build --configLoader native && node scripts/build-sw.mjs",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node tests/browser.mjs",
+    "test:month": "node tests/month-browser.mjs && node tests/midnight-browser.mjs",
+    "test:preview": "node tests/preview-browser.mjs",
+    "test:readability": "node tests/readability-browser.mjs",
+    "demo": "node scripts/mock-preview.mjs",
+    "backup": "node --env-file-if-exists=.env server/backup.mjs",
+    "restore": "node --env-file-if-exists=.env server/restore.mjs"
+  },
+  "dependencies": { "react": "19.2.8", "react-dom": "19.2.8" },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "playwright": "1.63.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  }
+}

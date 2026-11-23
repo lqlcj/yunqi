@@ -1,0 +1,73 @@
+name: Check application and Docker
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm test
+      - name: Install browser for regression tests
+        run: |
+          npx playwright install --with-deps chromium
+          node --input-type=module -e "import { chromium } from 'playwright'; console.log('CHROME_PATH=' + chromium.executablePath())" >> "$GITHUB_ENV"
+      - run: npm run test:e2e
+      - run: npm run test:month
+      - run: npm run test:readability
+      - name: Validate Compose using example configuration
+        run: docker compose --env-file .env.example config --quiet
+      - name: Build production image from source
+        run: docker build --tag yunqi:ci .
+      - name: Check container health, login and SQLite API
+        run: |
+          docker run --detach --name yunqi-ci \
+            --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --publish 127.0.0.1:3000:3000 \
+            --volume yunqi-ci-data:/app/data \
+            --env APP_PASSWORD=ci-docker-test-password \
+            --env APP_ORIGIN=http://127.0.0.1:3000 yunqi:ci
+          ready=false
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then docker logs yunqi-ci; exit 1; fi
+          curl --fail --silent --show-error \
+            --header 'Origin: http://127.0.0.1:3000' \
+            --header 'Content-Type: application/json' \
+            --cookie-jar "$RUNNER_TEMP/yunqi-cookies" \
+            --data '{"password":"ci-docker-test-password"}' \
+            http://127.0.0.1:3000/api/login > /dev/null
+          curl --fail --silent --show-error \
+            --header 'Origin: http://127.0.0.1:3000' \
+            --header 'Content-Type: application/json' \
+            --cookie "$RUNNER_TEMP/yunqi-cookies" \
+            --data '{"mutations":[]}' \
+            http://127.0.0.1:3000/api/sync > /dev/null
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs yunqi-ci 2>/dev/null || true
