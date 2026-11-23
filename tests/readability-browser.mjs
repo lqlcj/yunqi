@@ -89,15 +89,19 @@ try{
   await nav('today');await page.getByRole('alert',{name:'宫缩记录提醒'}).waitFor();await nav('contractions');
   await page.clock.setFixedTime(new Date(base+45000));await page.reload();await synced();
   assert.equal(await page.locator('.timer-fields dd').nth(1).textContent(),'45秒');assert.match(await page.locator('.contraction-alert').textContent(),/5分0秒/);
-  await page.getByRole('button',{name:'结束宫缩',exact:true}).click();await page.getByRole('button',{name:'强烈',exact:true}).click();await page.getByRole('button',{name:'保存疼痛程度',exact:true}).click();await synced();
+  await page.getByRole('button',{name:'结束宫缩',exact:true}).click();await page.getByRole('button',{name:'强烈',exact:true}).click();await page.getByRole('button',{name:'保存疼痛程度',exact:true}).click();
+  // Saving finishes when the dialog closes; the prior sync status may still be visible immediately after a click.
+  await page.locator('dialog').waitFor({state:'detached'});await synced();
   const current=page.locator('.record-contraction').first();assert.match(await current.textContent(),/45秒/);assert.match(await current.textContent(),/疼痛：强烈/);
+  const currentId=await current.getAttribute('data-record-id');assert.equal(allRecords(db).find(r=>r.id===currentId).payload.pain,'strong');
   pass('跨午夜 300 秒间隔立即提醒；首页可见，刷新恢复持续时长与提醒，疼痛保存正确');
 
   await current.getByRole('button',{name:'编辑宫缩记录'}).click();await page.getByLabel('开始时间', {exact:true}).fill('2026-11-23T00:04:41');await page.getByRole('button',{name:'保存记录',exact:true}).click();await page.locator('dialog').waitFor({state:'detached'});await synced();
   assert.equal(await page.locator('.contraction-alert').count(),0,'301 seconds must stop short interval alert');
   assert.equal(await page.locator('.timer-fields dd').nth(2).textContent(),'5分1秒');
   await nav('history');await page.getByLabel('历史开始日期').fill('2026-11-22');
-  page.once('dialog',d=>d.accept());await page.locator('[data-record-id="reminder-previous"]').getByRole('button',{name:'删除宫缩记录'}).click();await synced();
+  page.once('dialog',d=>d.accept());await page.locator('[data-record-id="reminder-previous"]').getByRole('button',{name:'删除宫缩记录'}).click();
+  await page.locator('[data-record-id="reminder-previous"]').waitFor({state:'detached'});await synced();
   await nav('contractions');assert.equal(await page.locator('.timer-fields dd').nth(2).textContent(),'—');
   pass('编辑到 301 秒即取消短间隔提醒；删除前次记录后间隔正确重算');
 
